@@ -1,0 +1,2 @@
+INDUSTRIES = {"Computer Science":
+              ["AI and Machine Learning", "Software Engineering", "Cybersecurity", "Cryptography", "Data Science", "Computer Networks and Cloud Computing", "Human Computer Interaction", "Game Development"]}

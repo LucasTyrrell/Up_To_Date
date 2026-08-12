@@ -1,0 +1,8 @@
+streamlit
+langchain
+langgraph
+langchain-anthropic
+langchain-community
+ddgs
+python-dotenv
+langchain_mcp_adapters
