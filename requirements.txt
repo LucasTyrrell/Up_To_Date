@@ -6,3 +6,5 @@ langchain-community
 ddgs
 python-dotenv
 langchain_mcp_adapters
+chromadb
+xhtml2pdf
