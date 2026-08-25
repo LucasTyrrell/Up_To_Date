@@ -3,6 +3,8 @@ import streamlit as st
 from langchain.tools import tool
 from xhtml2pdf import pisa
 from shared_state import pdf_buffer
+
+
 search = DuckDuckGoSearchResults()
 
 @tool

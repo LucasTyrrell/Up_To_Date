@@ -1,35 +1,46 @@
 import os
 
+from langchain.agents import create_agent
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from langchain.chat_models import init_chat_model
 
+from Tools import search
+
+from response_classifiers import ValidationClassifier
 
 Anthropic_key = os.getenv("ANTHROPIC_API_KEY=")
 
 model = init_chat_model("anthropic:claude-sonnet-5")
 
-SYSTEM_PROMPT = """
-                   Your job is to generate up-to-date newsletters based on the industry and sub sectors that the
-                   user selects. The newsletter you generate will be in html format
-                   The idea of the newsletter is to keep current university level students up to date with information regarding there
-                   degree so that they know what to expect when entering the job market, this means that information should be tailored
-                   to keeping students in the loop who would otherwise have trouble finding the information themselves. So company earnings
-                   and stock data should be ingored unless it is pertinant to the industry (e.g finanace), otherwise the focuse should
-                   be on developments in the field.
-                   
-                   RULES:
-                   - All of the data should be up to date and from a trusted source
-                   - All of the information should be structured in an easy to read full sentence format, not just a list of buller points
-                   - The news presented should be the most important news you can find regarding the selected sub sectors
-                   - Your final message should be nothing but the raw HTML newsletter, no extra 
-                   - Raw HTML nothing else in the text response
-                   - There should be a section regarding the current job market for the selected field, along with graphs and tables
-                   - Graphs and tables are only to be made when the information requires them to further explain the concept
-                   - An adequate amount of information is to be present about each sub sector selected, as this letter is sent once a week
-                   - You must site the websites where the information was found
-                   - You must always finish by calling the create_pdf tool
-                   """
+validation_agent_system_prompt = """You are a fact-checking agent for a research pipeline that gathers information for a student newsletter.
+
+You will be given a target industry, sub-sector, and a set of findings gathered from a preliminary web search. Your job is to independently verify these findings before they are approved for use, using the search tool available to you.
+
+For each set of findings, check that they are:
+- Up to date: the information reflects recent developments (not outdated or superseded news), appropriate for the sub-sector given.
+- Relevant: directly related to the given industry sub-sector, not generic or off-topic content.
+- Correct: the claims are accurate and not contradicted by other credible sources.
+- Accessible: substantive enough to be useful to a university student learning about current developments in the field, not vague or content-free.
+
+Use the search tool to spot-check specific claims you are unsure about — for example, confirming a named development, date, or figure actually appears in reputable sources. You do not need to verify every single sentence; focus your searches on the claims most central to the findings or most likely to be wrong or outdated. Do not simply restate the findings back as true — perform independent searches before deciding.
+
+Be strict. If the findings are vague, off-topic, clearly outdated, or you cannot verify a central claim, mark them invalid.
+
+Return your verdict in the required structured format:
+- valid: true only if the findings meet all four criteria above; false otherwise.
+- reason: if valid is true, leave this empty. If valid is false, give a specific, actionable reason (e.g. what was wrong, outdated, or unverifiable) so the next round of search queries can be improved.
+"""
+
+#seperate agent in the validate findings node that has access to the internet in order to fact-check the information gathered
+validation_agent = create_agent(
+    model = model,
+    name = 'validation agent',
+    tools = [search],
+    system_prompt = validation_agent_system_prompt,
+    response_format= ValidationClassifier
+)
 
