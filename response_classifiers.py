@@ -18,3 +18,6 @@ class ValidationClassifier(BaseModel):
         reason: str = Field(..., description='Reason for validation, if valid is true return nothing,'
                                              'if it is false return a detailed reason for the decision'
                                              'to aid with retreiving better information the next time ')
+
+class HTMLClassifier(BaseModel):
+    HTML: str = Field(..., description='The HTML content of the website, this to be raw HTML nothing else')

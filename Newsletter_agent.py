@@ -9,8 +9,10 @@ import datetime
 
 from typing import TypedDict, Literal
 
-from response_classifiers import QueriesClassifier
+from response_classifiers import QueriesClassifier, HTMLClassifier
 from industries import INDUSTRIES
+
+from bs4 import BeautifulSoup
 
 
 #defines the information that is to be passed to each LLM call
@@ -23,6 +25,7 @@ class State(TypedDict):
         reason: str | None
         retries: int | None
         summary: str | None
+        HTML: str | None
 
 #creates the queries to be sent to the LLM
 def define_queries(state: State):
@@ -86,12 +89,15 @@ def summarise(state: State):
             findings = state.get('findings')
             sector = state.get('sub_sector')
             industry = state.get('industry')
-            message = (f"here are the : [{findings}], this is to be summarised so that a university student studing a degree of the industry: [{industry}]"
-                       f"can get a meaningful understanding of the events that have happened recently in this sector: [{sector}]. "
-                       f"You are to simplify it without removing any key details, or anything vital for the student to understand the concept"
-                       f"for separate topics they should get a title and be formatted in an easy to read and appropriate manner")
+            message = (f"Here are the findings: [{findings}]. Write this up as a newsletter section for a university student "
+                       f"studying a degree in the industry: [{industry}], covering recent events in this sector: [{sector}]. "
+                       f"Write in full, flowing prose, not bullet points or fragmented lists. Group related findings into "
+                       f"well-structured paragraphs that read naturally, the way a newsletter article would. "
+                       f"Simplify the language without removing any key details or anything vital for the student to "
+                       f"understand the concept. If there are distinct topics, give each its own short title followed by "
+                       f"a coherent paragraph (or a few short paragraphs) of narrative text under it.")
 
-            response = model.invoke(message)
+            response = model.invoke([{'role': 'user', 'content': message}])
             return {'summary': response.content}
         except Exception as e:
                 return {"summary": f"Error: {e}"}
@@ -103,6 +109,25 @@ def validation_route(state: State) -> Literal['define_queries', 'summarise']:
     else:
         return 'define_queries'
 
+def HTML_generator(state: State):
+    try:
+        content = state.get('summary')
+        sector = state.get('sub_sector')
+        industry = state.get('industry')
+        structured_llm = model.with_structured_output(HTMLClassifier)
+
+        system_message = '''You are to take the summary generated from searching the web, and return raw HTML structured in the form of a newsletter
+                            The newsletter should look professional, have clear titles and defined sections.'''
+        user_message = f'This is the industry; [{industry}] This is the sub sector: [{sector}] This is the summary: [{content}]'
+
+        response = structured_llm.invoke([{'role': 'system', 'content': system_message}, {'role': 'user', 'content': user_message}])
+
+        HTML = BeautifulSoup(response.HTML, 'html.parser').prettify()
+        return {'HTML': HTML}
+    except Exception as e:
+        return {"summary": f"Error: {e}"}
+
+
 
 graph_builder = StateGraph(State)
 
@@ -112,13 +137,15 @@ graph_builder.add_node('search_news', search_news)
 graph_builder.add_node('validate_findings', validate_findings)
 graph_builder.add_node('summarise', summarise)
 graph_builder.add_node('validation_route', validation_route)
+graph_builder.add_node('HTML_generator', HTML_generator)
 
 #creates the graph, saying which nodes to visit next
 graph_builder.add_edge(START, 'define_queries')
 graph_builder.add_edge('define_queries', 'search_news')
 graph_builder.add_edge('search_news', 'validate_findings')
 graph_builder.add_conditional_edges('validate_findings', validation_route, {'summarise': 'summarise', 'define_queries': 'define_queries'})
-graph_builder.add_edge('summarise', END)
+graph_builder.add_edge('summarise', 'HTML_generator')
+graph_builder.add_edge('HTML_generator', END)
 checkpointer = InMemorySaver()
 graph = graph_builder.compile(checkpointer=checkpointer)
 
@@ -135,9 +162,11 @@ if __name__ == "__main__":
         "reason": None,
         "retries": None,
         "summary": None,
+        "HTML": None
     }
     result = graph.invoke(test_state, config=config)
     print("Queries:", result.get("queries"))
     print("Valid findings:", result.get("valid_findings"))
     print("Retries used:", result.get("retries"))
     print("Summary:\n", result.get("summary"))
+    print("HTML:\n", result.get("HTML"))

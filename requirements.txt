@@ -8,3 +8,4 @@ python-dotenv
 langchain_mcp_adapters
 chromadb
 xhtml2pdf
+bs4

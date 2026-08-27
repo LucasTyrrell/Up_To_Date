@@ -1,7 +1,7 @@
 import streamlit as st
 from industries import INDUSTRIES
 
-from agent import agent
+from Newsletter_agent import agent
 
 import datetime
 from shared_state import pdf_buffer
