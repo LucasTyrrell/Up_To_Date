@@ -1,10 +1,10 @@
 import streamlit as st
-from industries import INDUSTRIES
+from old_code.industries import INDUSTRIES
 
-from Newsletter_agent import agent
+from old_code.Newsletter_agent import agent
 
 import datetime
-from shared_state import pdf_buffer
+from old_code.shared_state import pdf_buffer
 
 st.write("Up To Date Newsletter")
 

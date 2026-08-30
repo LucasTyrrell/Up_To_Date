@@ -1,31 +1,18 @@
 import uuid
 
 
-from models import model, validation_agent
+from agents.models import model
 from Tools import search
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 import datetime
 
-from typing import TypedDict, Literal
-
-from response_classifiers import QueriesClassifier, HTMLClassifier
+from typing import Literal
+from agents.state import State
+from agents.response_classifiers import QueriesClassifier, HTMLClassifier
 from industries import INDUSTRIES
 
 from bs4 import BeautifulSoup
-
-
-#defines the information that is to be passed to each LLM call
-class State(TypedDict):
-        sub_sector: str | None
-        industry: str | None
-        queries: list[str] | None
-        findings: list[str] | None
-        valid_findings: bool | None
-        reason: str | None
-        retries: int | None
-        summary: str | None
-        HTML: str | None
 
 #creates the queries to be sent to the LLM
 def define_queries(state: State):
