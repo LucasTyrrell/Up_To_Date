@@ -10,3 +10,9 @@ langchain_mcp_adapters
 chromadb
 xhtml2pdf
 bs4
+sqlalchemy
+sqlalchemy_utils
+psycopg2-binary
+playwright
+patchright
+pandas
