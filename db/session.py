@@ -4,8 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy_utils import database_exists, create_database
 from dotenv import load_dotenv
 from contextlib import contextmanager
-
-Base = declarative_base()
+from db.jobs import Base
 
 
 def get_engine(user, passwd, host, port, db):
@@ -28,7 +27,7 @@ def get_engine_from_env():
     return get_engine(DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME)
 
 def init_db():
-    engine = get_engine()
+    engine = get_engine_from_env()
     Base.metadata.create_all(engine)
 
 #call as with get_session(engine) as session
@@ -45,3 +44,5 @@ def get_session(engine):
         raise
     finally:
         session.close()
+
+init_db()

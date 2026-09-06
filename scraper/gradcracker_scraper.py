@@ -1,5 +1,6 @@
 from patchright.sync_api import sync_playwright
 import time
+from db.jobs_service import get_urls, add_job_listing
 
 from clean_data import normalize_text, parse_salary, map_role_type, dedupe_by_url
 
@@ -12,6 +13,8 @@ def scrape_gradcracker(playwright, disipline, job_type):
         headless=False,
         no_viewport=True,
     )
+    #Listings already in database
+    stored_urls = get_urls()
 
     #initiate page
     page = browser.new_page()
@@ -20,12 +23,15 @@ def scrape_gradcracker(playwright, disipline, job_type):
     page_count = 1
     jobs = []
 
+    EXCLUDED_KEYWORDS = ('webinar', 'insight', 'open-day', 'information-session',
+                         'sneak-peak', 'inclusion', 'school-experience', 'virtual-recruitment')
+
     role_type = map_role_type(job_type)
 
     if job_type == 'placement' or job_type == 'internship':
         job_type = 'work-placements-internships'
 
-    while page_count < 5:
+    while page_count < 4:
 
         #setting delay as to avoid sending too many requests
         time.sleep(2)
@@ -60,10 +66,14 @@ def scrape_gradcracker(playwright, disipline, job_type):
 
             item = {}
 
-            item['Title'] = title_el.strip()
+            item['title'] = title_el.strip()
             item['URL'] = href if href.startswith('http') else "https://www.gradcracker.com" + href
 
-            jobs.append(item)
+            #prevents searching and storing of duplicate listings
+            #prevents wasting time running a deep search on a webinar or insight day
+            if item['URL'] not in stored_urls:
+                if not any(keyword in item['URL'] for keyword in EXCLUDED_KEYWORDS):
+                    jobs.append(item)
 
         page_count += 1
 
@@ -79,9 +89,8 @@ def scrape_gradcracker(playwright, disipline, job_type):
         time.sleep(2)
 
         item = {}
-        item['Title'] = normalize_text(job['Title'])
+        item['title'] = normalize_text(job['title'])
         item['URL'] = job['URL']
-        #item['description'] = None
         item['location'] = None
         item['salary'] = None
         item['company_name'] = None
@@ -97,7 +106,6 @@ def scrape_gradcracker(playwright, disipline, job_type):
             label = label_el.inner_text().strip().lower()
             text = li.inner_text().strip()
             value = text[len(label_el.inner_text()):].strip()
-            print(text)
 
             if 'salary' in label:
                 item['salary'] = normalize_text(value)
@@ -107,16 +115,16 @@ def scrape_gradcracker(playwright, disipline, job_type):
         #company name is stored after the 5th backslash in the url
 
         item['company_name'] = job['URL'].split('/')[5].replace('-', '').title()
+        print(item)
+        #doesnt add to the database
+        if any(value is None for value in item.values()):
+            continue
 
-        all_jobs.append(item)
-
-
+        add_job_listing(item)
 
     browser.close()
 
-    return all_jobs
 
 with sync_playwright() as playwright:
-    jobs = scrape_gradcracker(playwright, disipline='computing-technology', job_type='internship')
+    scrape_gradcracker(playwright, disipline='computing-technology', job_type='internship')
 
-    print(jobs)
