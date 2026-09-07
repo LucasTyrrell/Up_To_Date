@@ -31,7 +31,7 @@ class JobListing(Base):
 
 
     def __repr__(self):
-        return f"({self.id} {self.company_name} {self.salary} {self.description} {self.job_location} {self.role_type})"
+        return f"({self.id} {self.company_name} {self.salary} {self.job_location} {self.role_type})"
 
 class JobApplication(Base):
     __tablename__ = 'job_applications'
@@ -41,7 +41,7 @@ class JobApplication(Base):
     application_status = Column('application_status', String, CheckConstraint("application_status IN ('pending', 'rejected', 'successful', 'ghosted')"))
 
     def __init__(self, application_id, job_id):
-        self.application_id = id
+        self.application_id = application_id
         self.listing_id = job_id
         self.date_applied = datetime.now()
         self.application_status = 'pending'

@@ -1,4 +1,5 @@
 streamlit
+streamlit-pdf
 langchain
 langgraph
 langchain-anthropic

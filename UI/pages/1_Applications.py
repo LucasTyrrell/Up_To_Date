@@ -1,0 +1,125 @@
+import asyncio
+import sys
+import uuid
+from pathlib import Path
+
+import streamlit as st
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from db.jobs_service import get_all_applications
+from agents.newsletter.graph import Newsletter
+from agents.state import State
+
+st.set_page_config(page_title="Up To Date - Applications", layout="wide")
+
+ROLE_TYPE_LABELS = {
+    "graduate": "Graduate",
+    "internship": "Internship",
+    "apprenticeship": "Apprenticeship",
+}
+
+STATUS_LABELS = {
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "successful": "Successful",
+    "ghosted": "Ghosted",
+}
+
+# job listings don't capture an industry yet, so this stands in for it until they do
+# (all scraping so far targets the computing-technology discipline)
+DEFAULT_INDUSTRY = "Technology"
+
+
+@st.cache_data(ttl=60)
+def load_applications():
+    return get_all_applications()
+
+
+def generate_interview_prep(company, role):
+    state = {
+        "company": company,
+        "role": role,
+        "industry": DEFAULT_INDUSTRY,
+        "company_info_findings": None,
+        "company_news_findings": None,
+        "role_findings": None,
+        "interview_findings": None,
+        "valid_findings": None,
+        "reason": None,
+        "retries": None,
+        "summary": None,
+        "HTML": None,
+        "PDF": None,
+        "error": None,
+    }
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+
+    newsletter = Newsletter(State)
+    compiled_graph = newsletter.run()
+    return asyncio.run(compiled_graph.ainvoke(state, config=config))
+
+
+st.title("Applications")
+
+applications = load_applications()
+
+if st.button("Refresh applications"):
+    load_applications.clear()
+    st.rerun()
+
+if not applications:
+    st.info("No applications yet. Apply to a listing from the Job Listings page.")
+    st.stop()
+
+for application in applications:
+    application_id = application["application_id"]
+    title = application["role_title"] or "Untitled role"
+    company = application["company_name"] or "Unknown company"
+
+    with st.container(border=True):
+        info_col, action_col = st.columns([5, 2])
+
+        with info_col:
+            st.subheader(f"{title} — {company}")
+
+            details = []
+            if application["job_location"]:
+                details.append(f" {application['job_location']}")
+            if application["role_type"]:
+                details.append(ROLE_TYPE_LABELS.get(application["role_type"], application["role_type"]))
+            if application["application_status"]:
+                details.append(STATUS_LABELS.get(application["application_status"], application["application_status"]))
+            if application["date_applied"]:
+                details.append(f"Applied {application['date_applied']:%d %b %Y}")
+
+            if details:
+                st.caption(" · ".join(details))
+
+            if application["url"]:
+                st.markdown(f"[View original listing]({application['url']})")
+
+        with action_col:
+            if st.button("Generate interview prep", key=f"prep_{application_id}", use_container_width=True):
+                with st.spinner("Researching company, role, and interview questions — this can take a few minutes..."):
+                    try:
+                        result = generate_interview_prep(company, title)
+                    except Exception as e:
+                        st.session_state.pop(f"prep_pdf_{application_id}", None)
+                        st.session_state[f"prep_error_{application_id}"] = str(e)
+                    else:
+                        pdf_bytes = result.get("PDF")
+                        if pdf_bytes:
+                            st.session_state[f"prep_pdf_{application_id}"] = pdf_bytes
+                            st.session_state.pop(f"prep_error_{application_id}", None)
+                        else:
+                            st.session_state.pop(f"prep_pdf_{application_id}", None)
+                            st.session_state[f"prep_error_{application_id}"] = result.get("error") or "No PDF produced."
+
+        if st.session_state.get(f"prep_error_{application_id}"):
+            st.error(st.session_state[f"prep_error_{application_id}"])
+
+        if st.session_state.get(f"prep_pdf_{application_id}"):
+            st.pdf(st.session_state[f"prep_pdf_{application_id}"])
