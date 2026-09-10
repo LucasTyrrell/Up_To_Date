@@ -45,4 +45,5 @@ def get_session(engine):
     finally:
         session.close()
 
+#run this file to restart the database
 init_db()

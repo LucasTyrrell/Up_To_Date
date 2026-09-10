@@ -99,43 +99,57 @@ def scrape_gradcracker(playwright, discipline, job_type, headless=True):
 
             time.sleep(2)
 
-            item = {}
-            item['title'] = normalize_text(job['title'])
-            item['URL'] = job['URL']
-            item['location'] = None
-            item['salary'] = None
-            item['company_name'] = None
-            item['role_type'] = role_type
-            item['source'] = 'gradcracker'
+            #srape doent get stuck on out of date lisings
+            if page.locator('text=This position is no longer available').count() > 0:
+                continue
 
-            #grabs all information from the info box on the side od the listing
-            info_box = page.locator('div[data-type="overview"] li')
-            for li in info_box.element_handles():
-                label_el = li.query_selector('div')
-                if label_el is None:
+            try:
+                item = {}
+                item['title'] = normalize_text(job['title'])
+                item['URL'] = job['URL']
+                item['description'] = None
+                item['location'] = None
+                item['salary'] = None
+                item['company_name'] = None
+                item['role_type'] = role_type
+                item['source'] = 'gradcracker'
+
+                #grabs all information from the info box on the side of the listing
+                info_box = page.locator('div[data-type="overview"] li')
+                for li in info_box.element_handles():
+                    label_el = li.query_selector('div')
+                    if label_el is None:
+                        continue
+                    label = label_el.inner_text().strip().lower()
+                    text = li.inner_text().strip()
+                    value = text[len(label_el.inner_text()):].strip()
+
+                    if 'salary' in label:
+                        item['salary'] = normalize_text(value)
+                    if 'location' in label:
+                        item['location'] = normalize_text(value)
+
+                #gradcracker serves two different page templates - the older one uses
+                #"description mb20", a newer one uses "job-description mb20"
+                description = page.locator('div.description.mb20, div.job-description.mb20')
+                item['description'] = description.first.inner_text(timeout=5000).strip()
+
+                #company name is stored after the 5th backslash in the url
+                url_parts = job['URL'].split('/')
+                if len(url_parts) <= 5:
+                    print(f"skipping {job['URL']!r}: unexpected url shape")
                     continue
-                label = label_el.inner_text().strip().lower()
-                text = li.inner_text().strip()
-                value = text[len(label_el.inner_text()):].strip()
+                item['company_name'] = url_parts[5].replace('-', '').title()
 
-                if 'salary' in label:
-                    item['salary'] = normalize_text(value)
-                if 'location' in label:
-                    item['location'] = normalize_text(value)
+                #doesnt add to the database
+                if any(value is None for value in item.values()):
+                    continue
 
-            #company name is stored after the 5th backslash in the url
-            url_parts = job['URL'].split('/')
-            if len(url_parts) <= 5:
-                print(f"skipping {job['URL']!r}: unexpected url shape")
+                add_job_listing(item)
+            except Exception as e:
+
+                print(f"skipping {job['URL']!r}: failed to scrape ({e})")
                 continue
-            item['company_name'] = url_parts[5].replace('-', '').title()
-
-            print(item)
-            #doesnt add to the database
-            if any(value is None for value in item.values()):
-                continue
-
-            add_job_listing(item)
     finally:
         browser.close()
 
@@ -143,6 +157,6 @@ def run_scrape_gradcracker(discipline, job_type, headless=True):
     with sync_playwright() as playwright:
         scrape_gradcracker(playwright, discipline=discipline, job_type=job_type, headless=headless)
 
-
+#here for testing purpose to see where the scraper gets stuck
 if __name__ == "__main__":
     run_scrape_gradcracker(discipline='computing-technology', job_type='internship', headless=False)

@@ -27,15 +27,18 @@ class DocumentGenerator:
 
             return {'HTML': HTML}
         except Exception as e:
-            return {"summary": f"Error: {e}"}
+            return {"error": f"HTML generation failed: {e}"}
 
     def PDF_generator(self, state: State):
+        html = state.get('HTML')
+        if not html:
+            return {"error": state.get('error') or "PDF generation skipped: no HTML was generated"}
+
         try:
-            html = state.get('HTML')
             pdf_buffer = BytesIO()
             pisa.CreatePDF(html, pdf_buffer)
 
             pdf_buffer.seek(0)
             return {'PDF': pdf_buffer.getvalue()}
         except Exception as e:
-            return {"summary": f"Error: {e}"}
+            return {"error": f"PDF generation failed: {e}"}

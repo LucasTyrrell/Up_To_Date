@@ -38,20 +38,6 @@ class BaseScout:
         except Exception as e:
             return {"error": f"Error: {e}"}
 
-    async def extract_content(self, state: State, findings: list[dict]):
-        # gathers all the content from the findings
-        try:
-            content = []
-
-            for item in findings:
-                extracted = await self.client.extract(item['result']['url'])
-                content.append({'query': item['query'], 'result': extracted})
-
-            return content
-
-        except Exception as e:
-            return {"error": f"Error: {e}"}
-
     async def search(self, queries):
         try:
             response = await asyncio.gather(*[self.client.search(query) for query in queries])

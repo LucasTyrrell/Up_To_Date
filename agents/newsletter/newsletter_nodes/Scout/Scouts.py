@@ -8,9 +8,7 @@ class CompanyScout(BaseScout):
 
             findings = await self.search(queries)
 
-            content = await self.extract_content(state, findings)
-
-            return {"company_info_findings": content}
+            return {"company_info_findings": findings}
 
 
 class RoleScout(BaseScout):
@@ -19,9 +17,7 @@ class RoleScout(BaseScout):
 
             findings = await self.search(queries)
 
-            content = await self.extract_content(state, findings)
-
-            return {"role_findings": content}
+            return {"role_findings": findings}
 
 
 class NewsScout(BaseScout):
@@ -30,9 +26,7 @@ class NewsScout(BaseScout):
 
         findings = await self.search(queries)
 
-        content = await self.extract_content(state, findings)
-
-        return {"company_news_findings": content}
+        return {"company_news_findings": findings}
 
 
 class InterviewScout(BaseScout):
@@ -41,6 +35,4 @@ class InterviewScout(BaseScout):
 
         findings = await self.search(queries)
 
-        content = await self.extract_content(state, findings)
-
-        return {"interview_findings": content}
+        return {"interview_findings": findings}
