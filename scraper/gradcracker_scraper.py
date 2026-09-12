@@ -1,5 +1,8 @@
 from patchright.sync_api import sync_playwright
 import time
+import os
+import subprocess
+import sys
 from db.jobs_service import get_urls, add_job_listing
 
 from scraper.clean_data import normalize_text, parse_salary, map_role_type
@@ -8,8 +11,8 @@ from scraper.clean_data import normalize_text, parse_salary, map_role_type
 def scrape_gradcracker(playwright, discipline, job_type, headless=True):
     #initiate the browser
     browser = playwright.chromium.launch_persistent_context(
-        user_data_dir='C:\\playwright',
-        channel='chrome',
+        user_data_dir='/tmp/playwright-data',
+        
         headless=headless,
         no_viewport=True,
     )
@@ -154,8 +157,25 @@ def scrape_gradcracker(playwright, discipline, job_type, headless=True):
         browser.close()
 
 def run_scrape_gradcracker(discipline, job_type, headless=True):
-    with sync_playwright() as playwright:
-        scrape_gradcracker(playwright, discipline=discipline, job_type=job_type, headless=headless)
+    # In a headless Docker environment, spin up a virtual display so the
+    # browser can run in headed mode (needed to pass Cloudflare challenges)
+    xvfb_proc = None
+    if not headless and sys.platform != 'win32':
+        display = ':99'
+        xvfb_proc = subprocess.Popen(
+            ['Xvfb', display, '-screen', '0', '1920x1080x24'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        os.environ['DISPLAY'] = display
+        import time as _t; _t.sleep(1)  # give Xvfb a moment to start
+
+    try:
+        with sync_playwright() as playwright:
+            scrape_gradcracker(playwright, discipline=discipline, job_type=job_type, headless=headless)
+    finally:
+        if xvfb_proc:
+            xvfb_proc.terminate()
 
 #here for testing purpose to see where the scraper gets stuck
 if __name__ == "__main__":

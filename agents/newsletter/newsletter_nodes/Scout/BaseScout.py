@@ -1,6 +1,6 @@
 import asyncio
 
-from agents.state import State
+from agents.newsletter.state import State
 from tavily import AsyncTavilyClient
 from agents.models import model
 from datetime import datetime

@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from db.jobs_service import get_all_applications, get_interview_prep, store_interview_prep_pdf
 from agents.newsletter.graph import Newsletter
-from agents.state import State
+from agents.newsletter.state import State
 
 st.set_page_config(page_title="Up To Date - Applications", layout="wide")
 

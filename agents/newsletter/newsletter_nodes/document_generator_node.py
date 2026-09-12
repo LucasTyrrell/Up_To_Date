@@ -1,4 +1,4 @@
-from agents.state import State
+from agents.newsletter.state import State
 from agents.models import model
 from agents.newsletter.prompts import HTML_GENERATOR_USER_PROMPT, HTML_GENERATOR_SYSTEM_PROMPT
 from agents.response_classifiers import HTMLClassifier

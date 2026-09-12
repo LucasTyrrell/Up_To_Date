@@ -1,5 +1,5 @@
 from agents.newsletter.newsletter_nodes.Scout.BaseScout import BaseScout
-from agents.state import State
+from agents.newsletter.state import State
 from agents.newsletter.prompts import *
 
 class CompanyScout(BaseScout):

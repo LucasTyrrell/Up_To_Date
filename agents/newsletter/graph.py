@@ -1,10 +1,9 @@
 from langgraph.graph import StateGraph, START, END
 
-from agents.newsletter.newsletter_nodes import document_generator_node, summary_node
 from agents.newsletter.newsletter_nodes.Scout.Scouts import CompanyScout, RoleScout, NewsScout, InterviewScout
 from agents.newsletter.newsletter_nodes.document_generator_node import DocumentGenerator
 from agents.newsletter.newsletter_nodes.summary_node import Summary
-from agents.state import State
+from agents.newsletter.state import State
 
 
 class Newsletter:
@@ -19,7 +18,7 @@ class Newsletter:
         self.document_builder = DocumentGenerator()
 
 
-        self.graph = StateGraph(state)
+        self.graph = StateGraph(State)
 
         #initialise the nodes
         self.graph.add_node('company_scout', self.company_scout.run, defer=True)
@@ -51,3 +50,11 @@ class Newsletter:
     def run(self):
         compiled_graph = self.graph.compile()
         return compiled_graph
+
+    def print_graph(self):
+        compiled_graph = self.graph.compile()
+        compiled_graph.get_graph().draw_mermaid_png(output_file_path='../../assets/NewsletterGraph.png')
+
+if __name__ == '__main__':
+    graph = Newsletter(State)
+    graph.print_graph()

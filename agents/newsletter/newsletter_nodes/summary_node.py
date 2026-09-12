@@ -1,4 +1,4 @@
-from agents.state import State
+from agents.newsletter.state import State
 from agents.models import model
 from agents.newsletter.prompts import SUMMARY_SYSTEM_PROMPT, SUMMARY_USER_PROMPT
 

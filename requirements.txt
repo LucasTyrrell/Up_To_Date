@@ -6,6 +6,7 @@ langchain-anthropic
 langchain-community
 ddgs
 langchain-tavily
+tavily-python
 python-dotenv
 langchain_mcp_adapters
 chromadb

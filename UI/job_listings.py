@@ -137,10 +137,12 @@ with st.sidebar:
                 #so this looks intermittent rather than a fixed headless-vs-headed rule) - headed mode as a
                 #safer default until we understand the trigger better
                 run_scrape_gradcracker(discipline=scrape_discipline, job_type=scrape_job_type, headless=False)
+                load_listings.clear()
+                st.rerun()
             except Exception as e:
+                import traceback
                 st.error(f"Scraping failed: {e}")
-        load_listings.clear()
-        st.rerun()
+                st.code(traceback.format_exc())
 
     st.divider()
     st.header("Relevance scoring")
